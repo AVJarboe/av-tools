@@ -1,0 +1,47 @@
+/* Styles used only by the equipment list compare page. Shared pieces are in ../shared/style.css. */
+.pair { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+@media (min-width:760px) { .pair { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
+.pair .card { margin:0; min-width:0; }
+.card label { margin-top:10px; }
+.card h3 + label { margin-top:0; }
+textarea { display:block; width:100%; min-height:150px; resize:vertical; padding:8px; color:var(--fg); background:var(--bg);
+  border:1px solid var(--line); border-radius:6px; font:13px/1.4 ui-monospace, Consolas, "Courier New", monospace;
+  white-space:pre; overflow:auto; tab-size:12; }
+textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:16px 0; }
+.actions button { width:auto; }
+.actions label { display:flex; gap:8px; align-items:center; color:var(--fg); font-size:16px; }
+.actions input[type=checkbox] { width:20px; height:20px; min-height:0; margin:0; }
+.option { max-width:460px; }
+
+.read .fields { grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); }
+.read p { margin:8px 0; }
+.read ul { margin:6px 0; padding-left:20px; }
+.group-list { max-height:220px; overflow:auto; margin:6px 0 0; padding:8px 8px 8px 26px; border:1px solid var(--line);
+  border-radius:6px; background:var(--bg); }
+.group-list li { overflow-wrap:anywhere; }
+
+.badges { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+.log h4 { font-size:1rem; margin:16px 0 4px; }
+.log ul { margin:0 0 8px; padding-left:20px; }
+.log li { margin-bottom:4px; overflow-wrap:anywhere; }
+.scroll { overflow-x:auto; }
+#resultTable { font-size:14px; }
+#resultTable th { white-space:nowrap; }
+#resultTable td.num, #resultTable th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+#resultTable td.detail { min-width:160px; }
+#resultTable td.code { white-space:nowrap; }
+tr.unchanged td { color:var(--muted); }
+.how li { margin-bottom:6px; }
+
+@media print {
+  h2 { margin-top:14px; break-after:avoid; }
+  .log h4 { break-after:avoid; }
+  .log li { break-inside:avoid; }
+  .scroll { overflow:visible; }
+  #resultTable { font-size:8.5pt; }
+  #resultTable th, #resultTable td { padding:3px 4px; }
+  #resultTable th { white-space:normal; }
+  #resultTable td.detail { min-width:0; }
+  tr { break-inside:avoid; }
+}

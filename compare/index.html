@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equipment list compare - AV Tools</title>
+<link rel="stylesheet" href="../shared/style.css">
+<link rel="stylesheet" href="compare.css">
+</head>
+<body>
+<p class="no-print small"><a href="../index.html">&larr; All tools</a></p>
+<h1>Equipment list compare</h1>
+<p class="no-print">Paste two revisions of an equipment list and get a plain log of what was added, removed
+or changed. Lines for the same item are added up first, and the result is grouped by location and system.
+Everything happens in this page: nothing is saved, uploaded or sent anywhere. Works offline.</p>
+<p class="print-only" id="printTitle"></p>
+
+<div class="no-print">
+<h2>1. The two lists</h2>
+<p class="small muted">In Excel, select the cells including the row of column headings, copy, and paste into
+the box. Or load a .csv file. Excel workbooks (.xlsx) and PDFs are not read directly.</p>
+<div class="pair">
+  <div class="card">
+    <h3>Revision A (the older list)</h3>
+    <label for="nameA">Name to use in the log (optional)</label>
+    <input id="nameA" type="text" maxlength="60" placeholder="Revision A" autocomplete="off">
+    <label for="textA">Paste the list here</label>
+    <textarea id="textA" spellcheck="false" wrap="off" autocomplete="off"></textarea>
+    <label for="fileA">or load a .csv file</label>
+    <input id="fileA" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain">
+  </div>
+  <div class="card">
+    <h3>Revision B (the newer list)</h3>
+    <label for="nameB">Name to use in the log (optional)</label>
+    <input id="nameB" type="text" maxlength="60" placeholder="Revision B" autocomplete="off">
+    <label for="textB">Paste the list here</label>
+    <textarea id="textB" spellcheck="false" wrap="off" autocomplete="off"></textarea>
+    <label for="fileB">or load a .csv file</label>
+    <input id="fileB" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain">
+  </div>
+</div>
+<div class="actions">
+  <button type="button" id="sampleBtn">Try the sample</button>
+  <button type="button" id="clearBtn">Clear both</button>
+</div>
+
+<h2>2. Check what was read</h2>
+<p class="small muted">The columns are guessed from the heading names. Correct any that are wrong. Only one of
+model number, part number or description is needed. A line with no quantity counts as 1.</p>
+<div class="pair">
+  <div class="card read" id="readA"></div>
+  <div class="card read" id="readB"></div>
+</div>
+<div class="option">
+  <label for="levels">Heading rows (a row with text in only one cell)</label>
+  <select id="levels">
+    <option value="auto" selected>Work it out: a heading right after a heading is location, then system</option>
+    <option value="one">One level only: every heading is a location</option>
+  </select>
+</div>
+<div class="actions">
+  <button type="button" class="primary" id="compareBtn">Compare</button>
+  <span class="small muted" id="compareMsg"></span>
+</div>
+</div>
+
+<div id="results" hidden>
+  <h2>Revision log</h2>
+  <h3 id="summary"></h3>
+  <div class="badges" id="badges"></div>
+  <div class="log" id="log"></div>
+  <div id="notes"></div>
+  <div class="actions no-print">
+    <button type="button" class="primary" id="copyLogBtn">Copy the log</button>
+    <button type="button" id="printBtn">Print</button>
+    <span class="small muted" id="copyMsg" role="status"></span>
+  </div>
+
+  <h2>The same result as a table</h2>
+  <div class="actions no-print">
+    <label for="showUnchanged"><input type="checkbox" id="showUnchanged"> Also show items that did not change</label>
+    <button type="button" id="copyTableBtn">Copy the table (pastes into Excel)</button>
+  </div>
+  <div class="scroll"><table id="resultTable"><thead></thead><tbody></tbody></table></div>
+</div>
+
+<h2 class="no-print">How lines are matched</h2>
+<ul class="how small no-print">
+  <li><strong>Column headings.</strong> The first row with two or more filled cells is taken as the column
+  headings. Anything above it (a title line, for example) is ignored. Columns that are not picked in step 2,
+  such as prices or notes, are ignored too.</li>
+  <li><strong>Heading rows.</strong> A row with text in only one cell is a heading, and every line under it
+  belongs to that heading until the next one. A heading directly followed by another heading is read as a
+  location and then a system inside it; a single heading after that is another system in the same location.
+  If headings never come in pairs, every heading is a location. If the list has Location or System columns,
+  those are used and one-cell rows are treated as ordinary lines.</li>
+  <li><strong>What makes two lines the same item.</strong> The model number. If the line has no model number,
+  the part number. If it has neither, the description. Only columns that both lists have are used, so if just
+  one list has model numbers, matching falls back to the part number. The manufacturer is part of the match
+  when both lists have a manufacturer column. Capitals and extra spaces are ignored: "cm-40 " and "CM-40" are the same.</li>
+  <li><strong>Where.</strong> Lines are only compared inside the same location and system, matched by the
+  heading text. An item that moves from one room to another shows as removed in one and added in the other.</li>
+  <li><strong>Duplicate lines.</strong> When the same item is on several lines in the same location and
+  system, the quantities are added together first, and the log says how many lines were combined.</li>
+  <li><strong>Quantity.</strong> Qty B minus Qty A. "2.0" is 2. A blank quantity counts as 1. A quantity
+  that is not a number (such as "TBD") also counts as 1, and step 2 lists the rows where that happened.</li>
+  <li><strong>Changed.</strong> The same item with a different part number, manufacturer or description.
+  A column is only checked when both lists have it.</li>
+  <li><strong>No guessing.</strong> A replaced item shows as one removed line and one added line. The tool
+  does not decide that one replaced the other.</li>
+  <li><strong>Nothing dropped silently.</strong> A line with no model number, part number or description
+  cannot be matched. It is listed under the log with its row number.</li>
+</ul>
+<p class="small muted no-print">Check the matching yourself: <a href="selftest.html">run the self-check</a>
+against hand-worked examples. The sample lists are made up; no real maker or project is in them.</p>
+
+<script src="compare.js"></script>
+<script src="sample.js"></script>
+<script src="app.js"></script>
+<script src="../shared/disclaimer.js" defer></script>
+</body>
+</html>
