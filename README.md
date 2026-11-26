@@ -8,11 +8,11 @@ Hosted on GitHub Pages as one hub.
 
 | Path | Tool | Status |
 |---|---|---|
-| `/dante` | Dante/AES67 bandwidth & flow planner + IT port/QoS sheet | planned (release 1) |
-| `/labels` | Cable label & schedule generator (aligned with AVIXA F501.01) | planned (release 3) |
-| `/70v` | 70V/100V line & amplifier load calculator + voltage drop | planned (release 5) |
-| `/ipvlan` | Device IP schedule & VLAN planner | planned (release 7) |
-| `/rack` | Rack elevation builder with heat/power roll-up | planned (release 9) |
+| `/dante` | Dante/AES67 bandwidth & flow planner + IT port/QoS sheet | in progress, first release |
+| `/labels` | Cable label & schedule generator (aligned with AVIXA F501.01) | planned |
+| `/70v` | 70V/100V line & amplifier load calculator + voltage drop | planned |
+| `/ipvlan` | Device IP schedule & VLAN planner | planned |
+| `/rack` | Rack elevation builder with heat/power roll-up | planned |
 
 ## Disclaimer
 
