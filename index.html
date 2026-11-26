@@ -5,20 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AV Tools</title>
 <link rel="stylesheet" href="shared/style.css">
+<style>
+  .tools { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; margin-top:20px; }
+  .tool { margin:0; display:flex; flex-direction:column; gap:8px; }
+  .tool h2 { margin:0; font-size:1.05rem; }
+  .tool p { margin:0; font-size:14px; color:var(--muted); flex:1 1 auto; }
+  a.tool { text-decoration:none; color:var(--fg); border-color:var(--accent); }
+  a.tool:hover { box-shadow:0 2px 12px rgba(0,0,0,0.12); }
+  a.tool h2 { color:var(--accent); }
+  .tool.soon { background:transparent; border-style:dashed; }
+</style>
 </head>
 <body>
 <h1>AV Tools</h1>
-<p>Free, open-source, vendor-neutral AV calculators with the formulas showing. Works offline.</p>
-<table>
-<thead><tr><th>Tool</th><th>Status</th></tr></thead>
-<tbody>
-<tr><td>Dante/AES67 bandwidth &amp; flow planner</td><td>Coming soon</td></tr>
-<tr><td>Cable label &amp; schedule generator</td><td>Coming soon</td></tr>
-<tr><td>70V/100V line &amp; amplifier load calculator</td><td>Coming soon</td></tr>
-<tr><td>Device IP schedule &amp; VLAN planner</td><td>Coming soon</td></tr>
-<tr><td>Rack elevation &amp; heat/power roll-up</td><td>Coming soon</td></tr>
-</tbody>
-</table>
+<p class="lede">Free, open-source, vendor-neutral AV calculators with the formulas showing. Works offline.</p>
+<div class="tools">
+  <a class="card tool" href="70v/index.html">
+    <h2>70V/100V line &amp; amplifier load calculator</h2>
+    <p>Add up speaker taps, size the amplifier and check speaker-cable voltage drop.</p>
+    <span><span class="badge ok">Available</span></span>
+  </a>
+  <div class="card tool soon">
+    <h2>Dante/AES67 bandwidth &amp; flow planner</h2>
+    <p>Flow counts and bandwidth, with a port and QoS sheet for the IT team.</p>
+    <span><span class="badge">Coming soon</span></span>
+  </div>
+  <div class="card tool soon">
+    <h2>Cable label &amp; schedule generator</h2>
+    <p>Consistent cable labels and a printable cable schedule.</p>
+    <span><span class="badge">Coming soon</span></span>
+  </div>
+  <div class="card tool soon">
+    <h2>Device IP schedule &amp; VLAN planner</h2>
+    <p>Address plans for AV devices, grouped by VLAN.</p>
+    <span><span class="badge">Coming soon</span></span>
+  </div>
+  <div class="card tool soon">
+    <h2>Rack elevation &amp; heat/power roll-up</h2>
+    <p>Rack layouts with heat and power totals.</p>
+    <span><span class="badge">Coming soon</span></span>
+  </div>
+</div>
 <script src="shared/disclaimer.js" defer></script>
 </body>
 </html>

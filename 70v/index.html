@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>70V/100V line &amp; amplifier load calculator - AV Tools</title>
+<link rel="stylesheet" href="../shared/style.css">
+<style>
+  /* Inputs on the left, verdicts on the right (stacked on a phone) */
+  @media (min-width:900px) {
+    /* Both columns end on the same line: the last card on the right stretches to fit */
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:stretch; }
+    .summary, #form { display:flex; flex-direction:column; }
+    .summary .facts-card, #form > .card:last-child { flex:1 1 auto; }
+    .worked { display:grid; grid-template-columns:1fr 1fr; gap:0 32px; }
+    .worked > div + div { border-left:1px solid var(--line); padding-left:32px; }
+    /* Spread the rows of the shorter half so both halves end on the same line */
+    .worked > div { display:flex; flex-direction:column; }
+    .worked > div > .box:last-child { flex:1 1 auto; display:flex; flex-direction:column; justify-content:space-between; }
+  }
+  .facts-card { display:flex; flex-direction:column; }
+  .facts-card .actions { margin:auto 0 0; padding-top:16px; }
+  .facts-card .actions button { flex:1 1 auto; }
+  /* Worked figures flow into two even columns inside one card */
+  .worked h3 { margin:0 0 2px; }
+  .worked .box + h3 { margin-top:20px; }
+  @media (max-width:899px) { .worked > div + div { margin-top:20px; } }
+  .card h2 { display:flex; align-items:center; margin-bottom:14px; }
+
+  /* Speaker group rows */
+  .group-head, .group-row { display:grid; grid-template-columns:minmax(0,1fr) 84px 116px 78px 42px; gap:8px; align-items:center; }
+  .group-head { font-size:13px; font-weight:600; color:var(--muted); margin:14px 0 4px; }
+  .group-head .r { text-align:right; }
+  .group-row { margin-bottom:8px; }
+  .group-row label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .group-row .sub { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .group-row button { padding:0; min-width:42px; font-size:18px; line-height:1; }
+  @media (max-width:560px) {
+    .group-head { display:none; }
+    .group-row { grid-template-columns:1fr 1.2fr auto 42px; align-items:end; padding:10px; margin:0 0 10px;
+      border:1px solid var(--line); border-radius:8px; background:var(--bg); }
+    .group-row .g-name { grid-column:1 / -1; }
+    .group-row label { position:static; width:auto; height:auto; clip-path:none; font-size:13px; color:var(--muted); }
+    .group-row .sub { align-self:center; padding-top:20px; }
+  }
+  .group-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-top:12px; }
+  .group-foot .total { font-weight:700; font-variant-numeric:tabular-nums; }
+
+  /* Verdict tiles */
+  .tile, .tile.ok, .tile.warn, .tile.bad { border-left:4px solid var(--line); color:var(--fg); }
+  .tile.ok { border-left-color:var(--ok); } .tile.warn { border-left-color:var(--warn); } .tile.bad { border-left-color:var(--bad); }
+  .tile-head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .tile-head .k { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .big { font-size:2rem; font-weight:700; line-height:1.15; margin:6px 0 2px; font-variant-numeric:tabular-nums; }
+  .big small { font-size:0.95rem; font-weight:600; color:var(--muted); }
+  .tile p { margin:6px 0 0; font-size:14px; }
+  .bar { position:relative; height:10px; border-radius:999px; background:var(--bg); border:1px solid var(--line); margin:12px 0 4px; }
+  .bar .fill { position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:var(--ok); max-width:100%; }
+  .bar .fill.warn { background:var(--warn); } .bar .fill.bad { background:var(--bad); }
+  .bar .mark { position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--fg); }
+  .bar-cap { display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted); }
+  .bar-cap.three span { flex:1 1 0; } .bar-cap.three span:nth-child(2) { text-align:center; } .bar-cap.three span:nth-child(3) { text-align:right; }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; color:var(--muted); }
+  .legend i { display:inline-block; vertical-align:-1px; margin-right:5px; background:var(--fg); }
+  .legend i.sw { width:10px; height:10px; border-radius:3px; background:var(--ok); } .legend i.sw.bad { background:var(--bad); }
+  .legend i.mk { width:2px; height:12px; }
+  .fields.tight { grid-template-columns:repeat(auto-fit, minmax(132px, 1fr)); }
+  @media (min-width:420px) { #customWrap { grid-column:span 2; } }
+  .facts { display:grid; grid-template-columns:1fr auto; gap:6px 12px; margin:0; font-size:14px; }
+  .facts dt { color:var(--muted); } .facts dd { margin:0; text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+
+  /* Worked figures */
+  .result { padding:10px 0; border-bottom:1px solid var(--line); }
+  .result:last-child { border-bottom:none; padding-bottom:0; }
+  .result .top { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+  .result .val { font-weight:700; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  #groups { margin-top:14px; }
+  .results-h { margin-top:8px; }
+  @media (min-width:900px) { .results-h { display:none; } }
+  @media (min-width:561px) { #groups { margin-top:0; } }
+
+  /* Verdict strip pinned to the bottom whenever the two tiles are off screen */
+  body { padding-bottom:84px; }
+  .glance { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; gap:8px; justify-content:center;
+    padding:8px 12px; background:var(--surface); border-top:1px solid var(--line); box-shadow:0 -4px 16px rgba(0,0,0,0.12); }
+  .glance.away { display:none; }
+  .glance a { flex:1 1 0; min-width:0; max-width:520px; text-decoration:none; color:var(--fg); padding:6px 10px; border-radius:8px;
+    background:var(--bg); border-left:4px solid var(--line); font-size:13px; line-height:1.3; }
+  .glance a.ok { border-left-color:var(--ok); } .glance a.warn { border-left-color:var(--warn); } .glance a.bad { border-left-color:var(--bad); }
+  .glance b { display:block; font-size:15px; font-variant-numeric:tabular-nums; }
+  .glance span { color:var(--muted); }
+  #inputSummary td:first-child { width:45%; }
+  @media print {
+    body { padding-bottom:0; }
+    .bar, .bar-cap, .legend { display:none; }
+    .big { font-size:16pt; }
+    .tile, .tile.ok, .tile.warn, .tile.bad { border-left:none; }
+    h2, h3 { margin-top:12px; break-after:avoid; }
+    .result { padding:4px 0; }
+  }
+</style>
+</head>
+<body>
+<nav class="crumbs no-print" aria-label="Breadcrumb"><a href="../index.html">AV Tools</a><span>/</span><span>70V/100V calculator</span></nav>
+<h1>70V/100V line &amp; amplifier load calculator</h1>
+<p class="lede no-print">Add up the speaker taps, size the amplifier and check the loss in the speaker cable.
+Results update as you type, and every formula is shown.</p>
+<p class="print-only" id="printTitle"></p>
+
+<div class="print-only">
+  <h2>Inputs</h2>
+  <table id="inputSummary"><tbody></tbody></table>
+  <h2>Results</h2>
+</div>
+
+<div class="layout">
+<form id="form" class="no-print" autocomplete="off" onsubmit="return false">
+  <div class="card">
+    <h2><span class="step">1</span>Line and speakers</h2>
+    <div class="fields">
+      <div><label for="lineVolts">Line voltage</label>
+        <select id="lineVolts">
+          <option value="25">25 V</option>
+          <option value="70.7" selected>70.7 V ("70 volt")</option>
+          <option value="100">100 V</option>
+        </select></div>
+      <div><label for="project">Project or line name</label>
+        <input id="project" type="text" maxlength="80" placeholder="Optional, shown on the printout"></div>
+    </div>
+    <div class="group-head" aria-hidden="true"><span>Speaker group</span><span>Quantity</span><span>Tap each</span><span class="r">Subtotal</span><span></span></div>
+    <div id="groups"></div>
+    <div class="group-foot">
+      <button type="button" id="addGroup">+ Add group</button>
+      <span class="total" id="tapTotal"></span>
+    </div>
+    <datalist id="taps"><option value="0.5"><option value="1"><option value="2"><option value="2.5"><option value="5">
+      <option value="7.5"><option value="10"><option value="15"><option value="20"><option value="30"><option value="60"></datalist>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">2</span>Amplifier</h2>
+    <div class="fields">
+      <div><label for="ampWatts">Amplifier rated power</label>
+        <div class="ig"><input id="ampWatts" type="number" inputmode="decimal" min="0" step="1" value="250"><span>W</span></div>
+        <small class="hint">Blank skips the pass/fail check.</small></div>
+      <div><label for="headroom">Headroom</label>
+        <div class="ig"><input id="headroom" type="number" inputmode="decimal" min="0" max="200" step="1" value="20"><span>%</span></div>
+        <small class="hint">Spare power kept in reserve.</small></div>
+      <div><label for="insLoss">Transformer insertion loss</label>
+        <div class="ig"><input id="insLoss" type="number" inputmode="decimal" min="0" max="6" step="0.1" value="1"><span>dB</span></div>
+        <small class="hint">Lost in the speaker transformers.</small></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">3</span>Cable run</h2>
+    <div class="fields tight">
+      <div><label for="length">One-way length</label>
+        <div class="ig"><input id="length" type="number" inputmode="decimal" min="0" step="1" value="300">
+          <select id="lengthUnit" aria-label="Length unit"><option value="ft" selected>ft</option><option value="m">m</option></select></div>
+        <small class="hint">Amplifier to the far end.</small></div>
+      <div><label for="wire">Conductor size</label>
+        <select id="wire"></select>
+        <small class="hint">Copper, one conductor.</small></div>
+      <div id="customWrap" hidden><label for="customOhm">Custom resistance</label>
+        <div class="ig"><input id="customOhm" type="number" inputmode="decimal" min="0" step="0.001" value="2.52">
+          <select id="customUnit" aria-label="Resistance unit"><option value="kft" selected>&Omega;/1000 ft</option><option value="km">&Omega;/km</option></select></div>
+        <small class="hint">From the cable datasheet, at 20 &deg;C.</small></div>
+      <div><label for="targetDb">Loss target</label>
+        <div class="ig"><input id="targetDb" type="number" inputmode="decimal" min="0.1" max="6" step="0.1" value="0.5"><span>dB</span></div>
+        <small class="hint">About 10 % of power.</small></div>
+      <div><label for="tempC">Cable temperature</label>
+        <div class="ig"><input id="tempC" type="number" inputmode="decimal" min="-40" max="105" step="1" value="20"><span>&deg;C</span></div>
+        <small class="hint">20 unless it runs hot.</small></div>
+    </div>
+  </div>
+
+</form>
+
+<aside class="summary" id="results" aria-live="polite">
+  <h2 class="results-h no-print">Results</h2>
+  <div class="card tile" id="ampTile">
+    <div class="tile-head"><span class="k">Minimum amplifier</span><span id="ampBadge" class="badge"></span></div>
+    <div class="big" id="ampBig"></div>
+    <div id="ampBarWrap">
+      <div class="bar"><div class="fill" id="ampFill"></div><div class="mark" id="ampMark"></div></div>
+      <div class="bar-cap"><span>0 W</span><span id="ampCapR"></span></div>
+      <div class="legend"><span><i class="sw" id="ampSw"></i><span id="ampCapL"></span></span><span><i class="mk"></i><span id="ampCapM"></span></span></div>
+    </div>
+    <p id="ampMsg"></p>
+  </div>
+  <div class="card tile" id="cableTile">
+    <div class="tile-head"><span class="k">Cable loss</span><span id="cableBadge" class="badge"></span></div>
+    <div class="big" id="lossBig"></div>
+    <div class="bar"><div class="fill" id="lossFill"></div><div class="mark" id="lossMark" style="left:50%"></div></div>
+    <div class="bar-cap three"><span>0 dB</span><span id="lossCapM"></span><span id="lossCapR"></span></div>
+    <p id="cableMsg"></p>
+  </div>
+  <div class="card facts-card">
+    <dl class="facts" id="facts"></dl>
+    <div class="actions no-print">
+      <button type="button" class="primary" id="printBtn">Print summary</button>
+      <button type="button" id="resetBtn">Reset to example</button>
+    </div>
+  </div>
+</aside>
+</div>
+
+<h2>How each figure is worked out</h2>
+<div class="card worked">
+  <div>
+    <h3>Amplifier load</h3><div class="box" id="ampResults"></div>
+    <h3>Cable resistance</h3><div class="box" id="wireResults"></div>
+  </div>
+  <div>
+    <h3>Voltage drop and loss</h3><div class="box" id="cableResults"></div>
+  </div>
+</div>
+
+<h2>Assumptions and limits</h2>
+<div class="card">
+<ul class="notes small">
+  <li><strong>All the load is treated as sitting at the far end of the cable.</strong> On a real line the
+  speakers are spread along the run, so the cable carries less current further out and the true loss is lower.
+  This is a deliberate worst-case simplification.</li>
+  <li>The amplifier is treated as holding its full rated line voltage at its terminals, and the speaker
+  load as a plain resistance equal to V&sup2; &divide; P. Real transformer-coupled speakers vary with
+  frequency, so treat the results as estimates.</li>
+  <li><strong>Transformer insertion loss</strong> is the power the speaker transformers use up themselves, added
+  on top of the tap total. 1 dB is a common allowance. Use the figure on the speaker datasheet if it gives one,
+  or 0 if the maker states its tap ratings already include it.</li>
+  <li>Cable resistance is DC resistance of copper only. Cable inductance and capacitance are ignored; they
+  matter little at these lengths and audio frequencies on a high-impedance line.</li>
+  <li><strong>Wire resistance values are nominal, at 20 &deg;C.</strong> AWG sizes: solid annealed copper,
+  from <a href="https://nvlpubs.nist.gov/nistpubs/Legacy/hb/nbshandbook100.pdf" rel="noopener">NBS Handbook 100,
+  Copper Wire Tables</a> (Table 5, values as printed). mm&sup2; sizes: maximum DC resistance for Class 2
+  stranded plain copper conductors, from
+  <a href="https://webstore.iec.ch/en/publication/71891" rel="noopener">IEC 60228, Conductors of insulated
+  cables</a>. Stranded AWG, tinned and flexible cables run a few percent higher: pick "Custom" and type the
+  figure from the cable datasheet when it matters. Other temperatures are scaled with the copper coefficient
+  0.00393 per &deg;C.</li>
+  <li><strong>Local electrical code applies and is not checked here.</strong> For example, in the United
+  States the NEC Class 2 and Class 3 wiring rules limit what cable and installation methods may be used on a
+  given amplifier output. Check with the amplifier maker's listing and the authority having jurisdiction.</li>
+</ul>
+</div>
+
+<details class="card no-print">
+  <summary>Wire resistance table used</summary>
+  <div class="scroll-x" style="margin-top:10px">
+  <table id="wireTable" class="small"><thead><tr><th>Size</th><th>&Omega; per 1000 ft</th><th>&Omega; per km</th></tr></thead><tbody></tbody></table>
+  </div>
+  <p class="small muted" style="margin:10px 0 0">One conductor, 20 &deg;C, nominal. The value from the source table
+  is in bold; the other column is a unit conversion (1000 ft = 304.8 m).</p>
+</details>
+<p class="small muted no-print">Want to check the maths? <a href="selftest.html">Run the self-check</a> against
+hand-worked examples.</p>
+
+<div class="glance away no-print" id="glance">
+  <a href="#results" id="glanceAmp"><span>Amplifier</span><b></b></a>
+  <a href="#results" id="glanceCable"><span>Cable loss</span><b></b></a>
+</div>
+
+<script src="calc.js"></script>
+<script src="app.js"></script>
+<script src="../shared/disclaimer.js" defer></script>
+</body>
+</html>

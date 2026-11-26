@@ -8,11 +8,17 @@ Hosted on GitHub Pages as one hub.
 
 | Path | Tool | Status |
 |---|---|---|
-| `/dante` | Dante/AES67 bandwidth & flow planner + IT port/QoS sheet | in progress, first release |
+| `/70v` | 70V/100V line & amplifier load calculator + voltage drop | available |
+| `/dante` | Dante/AES67 bandwidth & flow planner + IT port/QoS sheet | next |
 | `/labels` | Cable label & schedule generator (aligned with AVIXA F501.01) | planned |
-| `/70v` | 70V/100V line & amplifier load calculator + voltage drop | planned |
 | `/ipvlan` | Device IP schedule & VLAN planner | planned |
 | `/rack` | Rack elevation builder with heat/power roll-up | planned |
+
+## Checking the maths
+
+Each tool keeps its calculations in a `calc.js` file with hand-worked test
+cases beside it. For the 70V/100V calculator, open `70v/selftest.html` in a
+browser, or run `node 70v/calc.test.js` if you have Node.js.
 
 ## Disclaimer
 
