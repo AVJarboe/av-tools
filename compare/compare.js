@@ -265,16 +265,22 @@
   // idRoles: the identifying columns both lists have, in order of preference.
   // If only one list has a Model column, matching falls to the part number
   // (or description) for both, instead of nothing matching at all.
-  function aggregate(list, useMfr, idRoles) {
+  // renames (revision A only): headings the user said are the same as a heading in B.
+  function aggregate(list, useMfr, idRoles, renames) {
     var groups = Object.create(null), order = [];
     list.items.forEach(function (it) {
+      var loc = it.location, sys = it.system, rn;
+      if (renames) {
+        if ((rn = renames.location[norm(loc)])) { loc = rn.to; rn.used = true; }
+        if ((rn = renames.system[norm(sys)])) { sys = rn.to; rn.used = true; }
+      }
       var kind = idRoles.filter(function (r) { return it[r]; })[0];
       var key = kind ? kind + ":" + norm(it[kind]) : it.key;
       kind = kind || it.idKind;
-      var gk = norm(it.location) + SEP + norm(it.system);
+      var gk = norm(loc) + SEP + norm(sys);
       var g = groups[gk];
       if (!g) {
-        g = groups[gk] = { location: it.location, system: it.system, order: [], items: Object.create(null) };
+        g = groups[gk] = { location: loc, system: sys, order: [], items: Object.create(null) };
         order.push(gk);
       }
       var fk = key + SEP + (useMfr ? norm(it.manufacturer) : "");
@@ -296,14 +302,47 @@
 
   var FIELD_NAMES = { manufacturer: "manufacturer", part: "part number", description: "description" };
 
-  function compare(listA, listB) {
+  // Headings (by level) that only one list has. The page offers these so the
+  // user can say "this one is the same as that one". Nothing is guessed.
+  function uniqueHeadings(list, level) {
+    var seen = Object.create(null), out = [];
+    list.groups.forEach(function (g) {
+      var t = g[level];
+      if (t !== "" && !seen[norm(t)]) { seen[norm(t)] = true; out.push(t); }
+    });
+    return out;
+  }
+  function headingDiff(listA, listB) {
+    var out = {};
+    ["location", "system"].forEach(function (level) {
+      var a = uniqueHeadings(listA, level), b = uniqueHeadings(listB, level);
+      function missingFrom(other) {
+        var set = Object.create(null);
+        other.forEach(function (t) { set[norm(t)] = true; });
+        return function (t) { return !set[norm(t)]; };
+      }
+      out[level] = { onlyA: a.filter(missingFrom(b)), onlyB: b.filter(missingFrom(a)), allB: b };
+    });
+    return out;
+  }
+
+  // opts.renames: [{ level: "location" or "system", from: heading text in A, to: heading text in B }]
+  function compare(listA, listB, opts) {
+    opts = opts || {};
+    var renameMap = { location: Object.create(null), system: Object.create(null) }, renameList = [];
+    (opts.renames || []).forEach(function (r) {
+      if (!r || !renameMap[r.level] || !clean(r.from) || !clean(r.to) || norm(r.from) === norm(r.to)) { return; }
+      var entry = { level: r.level, from: clean(r.from), to: clean(r.to), used: false };
+      renameMap[r.level][norm(r.from)] = entry;
+      renameList.push(entry);
+    });
     // Manufacturer is part of the identity only when both lists have that column.
     var useMfr = listA.has.manufacturer && listB.has.manufacturer;
     var fields = ["manufacturer", "part", "description"].filter(function (f) {
       return listA.has[f] && listB.has[f];
     });
     var idRoles = ["model", "part", "description"].filter(function (f) { return listA.has[f] && listB.has[f]; });
-    var A = aggregate(listA, useMfr, idRoles), B = aggregate(listB, useMfr, idRoles);
+    var A = aggregate(listA, useMfr, idRoles, renameMap), B = aggregate(listB, useMfr, idRoles, null);
 
     // Group order: revision B's order, with groups only in A slotted in.
     // Then keep all the systems of one location together.
@@ -321,6 +360,8 @@
       counts: { added: 0, removed: 0, quantity: 0, changed: 0, unchanged: 0, changes: 0 },
       combined: { a: { lines: 0, items: 0 }, b: { lines: 0, items: 0 } },
       hasLocation: false, hasSystem: false,
+      renames: renameList.filter(function (r) { return r.used; })
+        .map(function (r) { return { level: r.level, from: r.from, to: r.to }; }),
       unidentified: { a: listA.unidentified, b: listB.unidentified } };
     var none = Object.create(null);
 
@@ -358,7 +399,8 @@
 
       merged.forEach(function (fk) {
         var b = itemsB[fk] || null, a = itemsA[pairB[fk] || fk] || null;
-        var e = { a: a, b: b, item: b || a, qtyA: a ? a.qty : 0, qtyB: b ? b.qty : 0, details: [],
+        // id: stays the same when the same lists are compared again, so a typed reason can be kept.
+        var e = { id: gk + SEP + fk, a: a, b: b, item: b || a, qtyA: a ? a.qty : 0, qtyB: b ? b.qty : 0, details: [],
           linesA: a ? a.lines : 0, linesB: b ? b.lines : 0 };
         e.diff = round6(e.qtyB - e.qtyA);
         if (!a) { e.status = "added"; }
@@ -405,7 +447,10 @@
   var STATUS_LABEL = { added: "Added", removed: "Removed", quantity: "Quantity", changed: "Changed", unchanged: "Unchanged" };
 
   // One log line, split into its label ("Added") and the rest, so the page can bold the label.
-  function entryLine(e, nameA, nameB) {
+  function reasonOf(e, reasons) { return reasons ? clean(reasons[e.id]) : ""; }
+
+  // reason (optional): the user's note on why, added to the end of the line.
+  function entryLine(e, nameA, nameB, reason) {
     var text, qtyChange = fmtQty(e.qtyA) + " to " + fmtQty(e.qtyB) + " (" + fmtDiff(e.diff) + ")";
     if (e.status === "added") { text = fmtQty(e.qtyB) + " x " + itemLabel(e.item); }
     else if (e.status === "removed") { text = fmtQty(e.qtyA) + " x " + itemLabel(e.item); }
@@ -418,7 +463,9 @@
       text = itemLabel(e.item, descChanged) + ", " + bits.join(", ");
     }
     var note = combinedNote(e, nameA, nameB);
-    return { label: STATUS_LABEL[e.status], text: text + (note ? " [" + note + "]" : "") };
+    reason = clean(reason);
+    return { label: STATUS_LABEL[e.status],
+      text: text + (note ? " [" + note + "]" : "") + (reason ? ". Reason: " + reason : "") };
   }
 
   function summaryLine(result, nameA, nameB) {
@@ -455,12 +502,39 @@
     return out;
   }
 
+  function renameLines(result, nameA, nameB) {
+    return result.renames.map(function (r) {
+      return r.level + ' "' + r.from + '" in ' + nameA + ' is "' + r.to + '" in ' + nameB;
+    });
+  }
+
+  // The optional heading block: project, the two revisions with their dates, who prepared it.
+  // header: { project, nameA, dateA, nameB, dateB, preparedBy }, every part optional.
+  function headerLines(header) {
+    header = header || {};
+    var h = {};
+    ["project", "nameA", "dateA", "nameB", "dateB", "preparedBy"].forEach(function (k) { h[k] = clean(header[k]); });
+    var out = [];
+    if (h.project) { out.push("Project: " + h.project); }
+    if (h.nameA || h.dateA || h.nameB || h.dateB) {
+      out.push("Older list: " + (h.nameA || "Revision A") + (h.dateA ? ", " + h.dateA : ""));
+      out.push("Newer list: " + (h.nameB || "Revision B") + (h.dateB ? ", " + h.dateB : ""));
+    }
+    if (h.preparedBy) { out.push("Prepared by: " + h.preparedBy); }
+    return out;
+  }
+
   // The whole log as plain text, for copying.
-  function logText(result, nameA, nameB) {
+  // opts.reasons: { entry id: text }. opts.header: see headerLines.
+  function logText(result, nameA, nameB, opts) {
+    opts = opts || {};
     nameA = nameA || "Revision A"; nameB = nameB || "Revision B";
-    var lines = [summaryLine(result, nameA, nameB)];
+    var lines = headerLines(opts.header);
+    if (lines.length) { lines.push(""); }
+    lines.push(summaryLine(result, nameA, nameB));
     if (result.counts.changes) { lines.push("(" + countsLine(result) + ")"); }
     else { lines.push("No differences found."); }
+    renameLines(result, nameA, nameB).forEach(function (l) { lines.push("Renamed: " + l); });
     var showTitles = result.hasLocation || result.hasSystem;
     result.groups.forEach(function (g) {
       if (!g.changes) { return; }
@@ -468,7 +542,7 @@
       if (showTitles) { lines.push(groupTitle(g, nameA, nameB)); }
       g.entries.forEach(function (e) {
         if (e.status === "unchanged") { return; }
-        var l = entryLine(e, nameA, nameB);
+        var l = entryLine(e, nameA, nameB, reasonOf(e, opts.reasons));
         lines.push("- " + l.label + ": " + l.text);
       });
     });
@@ -492,7 +566,12 @@
     if (result.hasLocation) { head.push("Location"); }
     if (result.hasSystem) { head.push("System"); }
     head = head.concat(["Change", "Manufacturer", "Model", "Part number", "Description", "Qty A", "Qty B", "Difference", "Detail"]);
-    var rows = [], status = [];
+    // The Reason column appears only when at least one reason was typed.
+    var anyReason = result.groups.some(function (g) {
+      return g.entries.some(function (e) { return e.status !== "unchanged" && reasonOf(e, opts.reasons) !== ""; });
+    });
+    if (anyReason) { head.push("Reason"); }
+    var rows = [], status = [], ids = [];
     result.groups.forEach(function (g) {
       g.entries.forEach(function (e) {
         if (e.status === "unchanged" && !opts.unchanged) { return; }
@@ -504,11 +583,13 @@
         if (note) { detail.push(note); }
         row.push(STATUS_LABEL[e.status], e.item.manufacturer, e.item.model, e.item.part, e.item.description,
           fmtQty(e.qtyA), fmtQty(e.qtyB), fmtDiff(e.diff), detail.join("; "));
+        if (anyReason) { row.push(e.status === "unchanged" ? "" : reasonOf(e, opts.reasons)); }
         rows.push(row);
         status.push(e.status);
+        ids.push(e.id);
       });
     });
-    return { head: head, rows: rows, status: status };
+    return { head: head, rows: rows, status: status, ids: ids };
   }
 
   return {
@@ -516,6 +597,7 @@
     clean: clean, norm: norm, filledCount: filledCount,
     parseTable: parseTable, findHeaderRow: findHeaderRow, guessColumns: guessColumns,
     parseQty: parseQty, readList: readList, mergeOrder: mergeOrder, compare: compare,
+    headingDiff: headingDiff, renameLines: renameLines, headerLines: headerLines,
     fmtQty: fmtQty, fmtDiff: fmtDiff, itemLabel: itemLabel, entryLine: entryLine,
     summaryLine: summaryLine, countsLine: countsLine, groupTitle: groupTitle,
     combinedLines: combinedLines, unidentifiedLines: unidentifiedLines,

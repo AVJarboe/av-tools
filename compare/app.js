@@ -21,6 +21,24 @@
     B: { rows: [], headerIndex: -1, headerSig: null, map: null, list: null, fileMsg: "" }
   };
   var last = null;   // the result on screen, if any
+  // What the user typed against the results. Kept in memory only (never saved or
+  // sent), keyed by content so it is still there after comparing the same lists again.
+  var reasons = {};                                   // entry id -> reason text
+  var renameSel = { location: {}, system: {} };       // heading in A (lower case) -> { from, to }
+
+  function headerInfo() {
+    return { project: $("project").value, nameA: $("nameA").value, dateA: $("dateA").value,
+      nameB: $("nameB").value, dateB: $("dateB").value, preparedBy: $("preparedBy").value };
+  }
+  function renameList() {
+    var out = [];
+    ["location", "system"].forEach(function (level) {
+      Object.keys(renameSel[level]).forEach(function (k) {
+        out.push({ level: level, from: renameSel[level][k].from, to: renameSel[level][k].to });
+      });
+    });
+    return out;
+  }
 
   function revName(L) { return ELC.clean($("name" + L).value) || "Revision " + L; }
   function colLetter(i) {
@@ -136,6 +154,51 @@
     var ok = ready();
     $("compareBtn").disabled = !ok;
     $("compareMsg").textContent = ok ? "" : "Both lists need column headings and at least one identifying column.";
+    renderRenames();
+  }
+
+  // Headings that only one list has. For each one in revision A, a drop-down to say
+  // which heading in revision B it is the same as. Nothing is chosen for the user.
+  function renderRenames() {
+    var box = $("renames"), choices = 0;
+    box.textContent = "";
+    if (!ready()) { box.hidden = true; return; }
+    var diff = ELC.headingDiff(sides.A.list, sides.B.list);
+    box.appendChild(el("h3", { text: "Headings found in only one list" }));
+    box.appendChild(el("p", { class: "small muted", text: "If a room or system was only renamed, say which heading " +
+      "it matches and the two are compared as one. Left alone, it shows as a whole group removed and another added." }));
+    var fields = el("div", { class: "fields" }), onlyB = [];
+    ["location", "system"].forEach(function (level) {
+      var d = diff[level], key, valid = {};
+      d.onlyA.forEach(function (text, i) {
+        key = ELC.norm(text);
+        valid[key] = true;
+        if (!d.allB.length) { return; }
+        var id = "rename" + level + i;
+        var sel = el("select", { id: id }, [el("option", { value: "", text: "Not in Revision B (leave as it is)" })]);
+        var others = d.allB.filter(function (t) { return d.onlyB.indexOf(t) === -1; });
+        d.onlyB.concat(others).forEach(function (t) { sel.appendChild(el("option", { value: t, text: t })); });
+        var chosen = renameSel[level][key];
+        if (chosen && d.allB.indexOf(chosen.to) !== -1) { sel.value = chosen.to; }
+        else { delete renameSel[level][key]; }
+        (function (key, text) {
+          sel.addEventListener("change", function () {
+            if (sel.value) { renameSel[level][key] = { from: text, to: sel.value }; }
+            else { delete renameSel[level][key]; }
+            stale();
+          });
+        })(key, text);
+        fields.appendChild(el("div", {}, [el("label", { for: id, text: (level === "location" ? "Location" : "System") +
+          " \"" + text + "\" in Revision A is the same as" }), sel]));
+        choices++;
+      });
+      // forget choices for headings that are no longer in the list
+      Object.keys(renameSel[level]).forEach(function (k) { if (!valid[k]) { delete renameSel[level][k]; } });
+      d.onlyB.forEach(function (t) { onlyB.push(level + " \"" + t + "\""); });
+    });
+    box.appendChild(fields);
+    if (onlyB.length) { box.appendChild(el("p", { class: "small muted", text: "Only in Revision B: " + onlyB.join(", ") + "." })); }
+    box.hidden = choices === 0;
   }
   function stale() {
     last = null;
@@ -178,9 +241,12 @@
 
   function renderResults() {
     if (!ready()) { return; }
-    var r = ELC.compare(sides.A.list, sides.B.list), nA = revName("A"), nB = revName("B");
+    var r = ELC.compare(sides.A.list, sides.B.list, { renames: renameList() }), nA = revName("A"), nB = revName("B");
     last = { r: r, nA: nA, nB: nB };
     $("summary").textContent = ELC.summaryLine(r, nA, nB);
+    var head = $("logHeader");
+    head.textContent = "";
+    ELC.headerLines(headerInfo()).forEach(function (l) { head.appendChild(el("p", { text: l })); });
 
     var c = r.counts, badges = $("badges");
     badges.textContent = "";
@@ -192,6 +258,9 @@
     var log = $("log"), showTitles = r.hasLocation || r.hasSystem;
     log.textContent = "";
     if (!c.changes) { log.appendChild(el("p", { text: "No differences found." })); }
+    ELC.renameLines(r, nA, nB).forEach(function (l) {
+      log.appendChild(el("p", { class: "small" }, [el("strong", { text: "Renamed: " }), l]));
+    });
     r.groups.forEach(function (g) {
       if (!g.changes) { return; }
       if (showTitles) { log.appendChild(el("h4", { text: ELC.groupTitle(g, nA, nB) })); }
@@ -199,7 +268,24 @@
       g.entries.forEach(function (e) {
         if (e.status === "unchanged") { return; }
         var line = ELC.entryLine(e, nA, nB);
-        ul.appendChild(el("li", {}, [el("strong", { class: STATUS_CLASS[e.status], text: line.label + ":" }), " " + line.text]));
+        // On screen the reason is a box to type in; on paper it is a line of text.
+        var input = el("input", { type: "text", class: "reason no-print", maxlength: "200", autocomplete: "off",
+          placeholder: "Reason (optional)", "aria-label": "Reason for this change: " + line.text });
+        var printed = el("span", { class: "reason-print print-only" });
+        function show() {
+          var t = ELC.clean(reasons[e.id]);
+          printed.textContent = t ? "Reason: " + t : "";
+        }
+        input.value = reasons[e.id] || "";
+        input.addEventListener("input", function () {
+          if (ELC.clean(input.value)) { reasons[e.id] = input.value; } else { delete reasons[e.id]; }
+          show();
+          renderTable();
+          $("copyMsg").textContent = "";
+        });
+        show();
+        ul.appendChild(el("li", {}, [el("strong", { class: STATUS_CLASS[e.status], text: line.label + ":" }),
+          " " + line.text, input, printed]));
       });
       log.appendChild(ul);
     });
@@ -223,14 +309,14 @@
   }
 
   function currentTable() {
-    return ELC.tableRows(last.r, last.nA, last.nB, { unchanged: $("showUnchanged").checked });
+    return ELC.tableRows(last.r, last.nA, last.nB, { unchanged: $("showUnchanged").checked, reasons: reasons });
   }
   function renderTable() {
     var t = currentTable(), thead = $("resultTable").tHead, tbody = $("resultTable").tBodies[0];
-    var numFrom = t.head.indexOf("Qty A"), changeCol = t.head.indexOf("Change"), detailCol = t.head.length - 1;
+    var numFrom = t.head.indexOf("Qty A"), changeCol = t.head.indexOf("Change"), detailCol = t.head.indexOf("Detail");
     var modelCol = t.head.indexOf("Model"), partCol = t.head.indexOf("Part number");
     function cls(i) {
-      return i >= numFrom && i < detailCol ? "num" : i === detailCol ? "detail" : (i === modelCol || i === partCol) ? "code" : "";
+      return i >= numFrom && i < detailCol ? "num" : i >= detailCol ? "detail" : (i === modelCol || i === partCol) ? "code" : "";
     }
     thead.textContent = "";
     tbody.textContent = "";
@@ -276,7 +362,10 @@
       if (this.files && this.files[0]) { loadFile(L, this.files[0]); }
       this.value = "";   // so picking the same file again still reloads it
     });
-    $("name" + L).addEventListener("input", function () { if (last) { renderResults(); } });
+  });
+  // Heading fields update the log on screen as they are typed.
+  ["nameA", "dateA", "nameB", "dateB", "project", "preparedBy"].forEach(function (id) {
+    $(id).addEventListener("input", function () { if (last) { renderResults(); } });
   });
   $("levels").addEventListener("change", function () { stale(); reread("A"); reread("B"); });
   $("compareBtn").addEventListener("click", function () {
@@ -296,14 +385,20 @@
     ["A", "B"].forEach(function (L) {
       $("text" + L).value = "";
       $("name" + L).value = "";
+      $("date" + L).value = "";
       sides[L].fileMsg = "";
-      analyse(L);
     });
+    $("project").value = "";
+    $("preparedBy").value = "";
+    reasons = {};
+    renameSel = { location: {}, system: {} };
+    analyse("A");
+    analyse("B");
     stale();
   });
   $("showUnchanged").addEventListener("change", function () { if (last) { renderTable(); } });
   $("copyLogBtn").addEventListener("click", function () {
-    if (last) { copyText(ELC.logText(last.r, last.nA, last.nB), "Log"); }
+    if (last) { copyText(ELC.logText(last.r, last.nA, last.nB, { reasons: reasons, header: headerInfo() }), "Log"); }
   });
   $("copyTableBtn").addEventListener("click", function () {
     if (!last) { return; }

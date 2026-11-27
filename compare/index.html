@@ -22,8 +22,12 @@ the box. Or load a .csv file. Excel workbooks (.xlsx) and PDFs are not read dire
 <div class="pair">
   <div class="card">
     <h3>Revision A (the older list)</h3>
-    <label for="nameA">Name to use in the log (optional)</label>
-    <input id="nameA" type="text" maxlength="60" placeholder="Revision A" autocomplete="off">
+    <div class="namedate">
+      <div><label for="nameA">Name to use in the log (optional)</label>
+        <input id="nameA" type="text" maxlength="60" placeholder="Revision A" autocomplete="off"></div>
+      <div><label for="dateA">Date (optional)</label>
+        <input id="dateA" type="date" autocomplete="off"></div>
+    </div>
     <label for="textA">Paste the list here</label>
     <textarea id="textA" spellcheck="false" wrap="off" autocomplete="off"></textarea>
     <label for="fileA">or load a .csv file</label>
@@ -31,13 +35,28 @@ the box. Or load a .csv file. Excel workbooks (.xlsx) and PDFs are not read dire
   </div>
   <div class="card">
     <h3>Revision B (the newer list)</h3>
-    <label for="nameB">Name to use in the log (optional)</label>
-    <input id="nameB" type="text" maxlength="60" placeholder="Revision B" autocomplete="off">
+    <div class="namedate">
+      <div><label for="nameB">Name to use in the log (optional)</label>
+        <input id="nameB" type="text" maxlength="60" placeholder="Revision B" autocomplete="off"></div>
+      <div><label for="dateB">Date (optional)</label>
+        <input id="dateB" type="date" autocomplete="off"></div>
+    </div>
     <label for="textB">Paste the list here</label>
     <textarea id="textB" spellcheck="false" wrap="off" autocomplete="off"></textarea>
     <label for="fileB">or load a .csv file</label>
     <input id="fileB" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain">
   </div>
+</div>
+<div class="card">
+  <h3>Heading for the log and printout (optional)</h3>
+  <div class="fields">
+    <div><label for="project">Project name</label>
+      <input id="project" type="text" maxlength="80" autocomplete="off"></div>
+    <div><label for="preparedBy">Prepared by</label>
+      <input id="preparedBy" type="text" maxlength="60" autocomplete="off"></div>
+  </div>
+  <p class="small muted" style="margin-bottom:0">These, with the revision names and dates above, go at the top
+  of the log so a printed or copied log makes sense on its own. Leave any of them blank.</p>
 </div>
 <div class="actions">
   <button type="button" id="sampleBtn">Try the sample</button>
@@ -51,6 +70,7 @@ model number, part number or description is needed. A line with no quantity coun
   <div class="card read" id="readA"></div>
   <div class="card read" id="readB"></div>
 </div>
+<div class="card" id="renames" hidden></div>
 <div class="option">
   <label for="levels">Heading rows (a row with text in only one cell)</label>
   <select id="levels">
@@ -66,10 +86,14 @@ model number, part number or description is needed. A line with no quantity coun
 
 <div id="results" hidden>
   <h2>Revision log</h2>
+  <div id="logHeader"></div>
   <h3 id="summary"></h3>
   <div class="badges" id="badges"></div>
   <div class="log" id="log"></div>
   <div id="notes"></div>
+  <p class="small muted no-print">The box under each change is for a reason, such as "client asked for a
+  larger display". It is optional. Reasons appear in the copied log, the copied table and the printout, and
+  stay only in this page.</p>
   <div class="actions no-print">
     <button type="button" class="primary" id="copyLogBtn">Copy the log</button>
     <button type="button" id="printBtn">Print</button>
@@ -100,6 +124,10 @@ model number, part number or description is needed. A line with no quantity coun
   when both lists have a manufacturer column. Capitals and extra spaces are ignored: "cm-40 " and "CM-40" are the same.</li>
   <li><strong>Where.</strong> Lines are only compared inside the same location and system, matched by the
   heading text. An item that moves from one room to another shows as removed in one and added in the other.</li>
+  <li><strong>Renamed rooms or systems.</strong> "Board Room 201" and "Boardroom 201" are different text, so
+  they are treated as different places. When a heading is in only one list, step 2 offers a drop-down to say
+  which heading in the other list it is the same as. The tool never decides this itself. The log states each
+  rename you chose.</li>
   <li><strong>Duplicate lines.</strong> When the same item is on several lines in the same location and
   system, the quantities are added together first, and the log says how many lines were combined.</li>
   <li><strong>Quantity.</strong> Qty B minus Qty A. "2.0" is 2. A blank quantity counts as 1. A quantity

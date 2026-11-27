@@ -218,6 +218,70 @@
   var b22 = load(csv(["Model,Part Number,Qty", "M1,P1,2", "M2,P2,1"]));
   same("22 only one list has a Model column", statuses(ELC.compare(a22, b22)), ["P1 quantity", "P2 unchanged"]);
 
+  // Case 23: a renamed room. "Board Room 201" in A is "Boardroom 201" in B.
+  // Left alone, the texts differ, so one whole group is removed and one added
+  // (4 changes). Once the user says they are the same room, the two are compared
+  // as one group: M1 1 -> 2, M2 removed, M3 added (3 changes), and the log says so.
+  var a23 = load(csv(["Model,Qty", "Board Room 201", "M1,1", "M2,1"]));
+  var b23 = load(csv(["Model,Qty", "Boardroom 201", "M1,2", "M3,1"]));
+  same("23 headings only one list has", ELC.headingDiff(a23, b23), {
+    location: { onlyA: ["Board Room 201"], onlyB: ["Boardroom 201"], allB: ["Boardroom 201"] },
+    system: { onlyA: [], onlyB: [], allB: [] } });
+  var r23plain = ELC.compare(a23, b23);
+  same("23 no rename: two separate groups", r23plain.groups.map(function (g) { return g.label + "=" + g.status; }),
+    ["Board Room 201=removed", "Boardroom 201=added"]);
+  same("23 no rename: 4 changes", r23plain.counts.changes, 4);
+  var r23 = ELC.compare(a23, b23, { renames: [{ level: "location", from: "board room 201", to: "Boardroom 201" },
+    { level: "location", from: "No Such Room", to: "Boardroom 201" }] });
+  same("23 rename: one group", statuses(r23), ["Boardroom 201: M1 quantity", "Boardroom 201: M2 removed", "Boardroom 201: M3 added"]);
+  same("23 rename: only the rename that applied is reported", r23.renames,
+    [{ level: "location", from: "board room 201", to: "Boardroom 201" }]);
+  same("23 rename: log", ELC.logText(r23), [
+    "Revision A to Revision B: 3 changes, 0 items unchanged",
+    "(1 added, 1 removed, 1 quantity, 0 changed)",
+    "Renamed: location \"board room 201\" in Revision A is \"Boardroom 201\" in Revision B",
+    "",
+    "Boardroom 201",
+    "- Quantity: M1, 1 to 2 (+1)",
+    "- Removed: 1 x M2",
+    "- Added: 1 x M3"].join("\n"));
+
+  // Case 24: a renamed system. "Sound" in A is "Audio" in B, in every room.
+  var a24 = load(csv(["Model,Qty", "Room A", "Sound", "M1,1", "Room B", "Sound", "M2,1"]));
+  var b24 = load(csv(["Model,Qty", "Room A", "Audio", "M1,1", "Room B", "Audio", "M2,3"]));
+  same("24 system only in A", ELC.headingDiff(a24, b24).system, { onlyA: ["Sound"], onlyB: ["Audio"], allB: ["Audio"] });
+  same("24 system rename", statuses(ELC.compare(a24, b24, { renames: [{ level: "system", from: "Sound", to: "Audio" }] })),
+    ["Room A / Audio: M1 unchanged", "Room B / Audio: M2 quantity"]);
+
+  // Case 25: reasons. A reason typed against M2 in case 13 shows at the end of
+  // its log line and in a Reason column. A blank reason adds nothing. The id a
+  // reason is stored under is built from the group and the item, so comparing
+  // the same lists again gives the same id.
+  var id25 = r13.groups[0].entries[1].id;
+  same("25 entry id is built from group and item", id25, "\u0001\u0001model:m2\u0001ea");
+  same("25 same lists again, same id", ELC.compare(a13, b13).groups[0].entries[1].id, id25);
+  var reasons25 = {};
+  reasons25[id25] = "  client asked for more ";
+  reasons25[r13.groups[0].entries[2].id] = "   ";
+  same("25 reason in the log line", ELC.logText(r13, null, null, { reasons: reasons25 }).split("\n")[3],
+    "- Quantity: EA M2 Speaker, 1 to 3 (+2). Reason: client asked for more");
+  same("25 blank reason leaves the line alone", ELC.logText(r13, null, null, { reasons: reasons25 }).split("\n")[4],
+    "- Changed: EA M3 Amp, part number P3 to P3-B");
+  var t25 = ELC.tableRows(r13, null, null, { reasons: reasons25 });
+  same("25 table gains a Reason column", t25.head.slice(-2), ["Detail", "Reason"]);
+  same("25 table row for M2", t25.rows[0], ["Quantity", "EA", "M2", "P2", "Speaker", "1", "3", "+2", "", "client asked for more"]);
+  same("25 table row for M3 has an empty reason", t25.rows[1][9], "");
+  same("25 only blank reasons: no Reason column", ELC.tableRows(r13, null, null, { reasons: { x: " " } }).head.length, 9);
+
+  // Case 26: the header block for the log and printout. Every part is optional.
+  same("26 header, all parts", ELC.headerLines({ project: "Example HQ", nameA: "Rev 2", dateA: "2026-11-01",
+    nameB: "", dateB: "2026-11-20", preparedBy: "M. Example" }),
+    ["Project: Example HQ", "Older list: Rev 2, 2026-11-01", "Newer list: Revision B, 2026-11-20", "Prepared by: M. Example"]);
+  same("26 header, nothing typed", ELC.headerLines({ project: " ", nameA: "" }), []);
+  same("26 header, project only", ELC.headerLines({ project: "Example HQ" }), ["Project: Example HQ"]);
+  same("26 header sits above the log", ELC.logText(r20, "Rev 2", "Rev 3", { header: { project: "Example HQ", nameA: "Rev 2", nameB: "Rev 3" } }),
+    "Project: Example HQ\nOlder list: Rev 2\nNewer list: Rev 3\n\nRev 2 to Rev 3: 0 changes, 3 items unchanged\nNo differences found.");
+
   // Case 21: the built-in sample. Counted by hand from sample.js:
   //   added: DSP-12, 75U, 55U, WM-M (4). removed: DSP-8, 65U, SW-8 (3).
   //   quantity: C6-T in Boardroom 201 4 -> 6, cable allowance 1 -> 2, PDU-8 2 -> 3 (3).

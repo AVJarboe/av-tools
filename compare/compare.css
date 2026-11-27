@@ -8,6 +8,15 @@ textarea { display:block; width:100%; min-height:150px; resize:vertical; padding
   border:1px solid var(--line); border-radius:6px; font:13px/1.4 ui-monospace, Consolas, "Courier New", monospace;
   white-space:pre; overflow:auto; tab-size:12; }
 textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.namedate { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:12px; align-items:end; }
+.namedate label { margin-top:0; }
+@media (max-width:420px) { .namedate { grid-template-columns:minmax(0,1fr); } }
+#renames p { margin:8px 0; }
+#renames .fields { grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+#logHeader p { margin:0; }
+#logHeader { margin-bottom:10px; }
+.log input.reason { display:block; width:100%; max-width:460px; margin-top:4px; min-height:34px; padding:4px 8px; font-size:14px; }
+.log .reason-print { font-style:italic; }
 .actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:16px 0; }
 .actions button { width:auto; }
 .actions label { display:flex; gap:8px; align-items:center; color:var(--fg); font-size:16px; }
@@ -29,7 +38,7 @@ textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 #resultTable { font-size:14px; }
 #resultTable th { white-space:nowrap; }
 #resultTable td.num, #resultTable th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
-#resultTable td.detail { min-width:160px; }
+#resultTable td.detail:not(:empty) { min-width:130px; }
 #resultTable td.code { white-space:nowrap; }
 tr.unchanged td { color:var(--muted); }
 .how li { margin-bottom:6px; }
