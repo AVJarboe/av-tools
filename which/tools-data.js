@@ -17,8 +17,6 @@
 //             lists it for a click by hand instead of testing it.
 //   expect    a word that should be in the page's title. check-links.js warns
 //             when it is gone (the link may now show something else).
-//   gap: true a "Nothing good found yet" row: no name or url, and "does"
-//             holds the nearest workaround.
 //
 // After editing, run:  node which/which.test.js   and   node which/check-links.js
 
@@ -89,13 +87,6 @@ var WHICH_DATA = {
     },
     {
       group: "Display and projection",
-      task: "Image contrast check with the formula shown",
-      gap: true,
-      does: "No free calculator found that takes room light, screen gain and projector lumens and shows its working. Draper's planner above is the nearest.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Display and projection",
       task: "LED wall size, weight and power",
       name: "LED Wall Calculator",
       publisher: "Patchify",
@@ -125,13 +116,6 @@ var WHICH_DATA = {
     },
     {
       group: "Display and projection",
-      task: "Display mounting check for commercial rooms",
-      gap: true,
-      does: "No tool found that checks front-row sightlines, vertical viewing angle and wall protrusion together. Use the mounting height calculator above and the Access Board guide below.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Display and projection",
       task: "Wall protrusion limits (ADA) reference",
       name: "Protruding Objects guide",
       publisher: "U.S. Access Board",
@@ -156,13 +140,6 @@ var WHICH_DATA = {
       alsoTry: [
         { name: "Datavideo Room Designer", url: "https://roomdesigner.datavideo.com", note: "A camera maker's room layout tool.", tags: ["maker"] }
       ]
-    },
-    {
-      group: "Display and projection",
-      task: "Meeting-room camera coverage",
-      gap: true,
-      does: "No neutral tool found that lays out camera coverage for a meeting room. The field-of-view calculator above gives the basic geometry.",
-      checked: "2026-11-26"
     },
 
     // ---------------------------------------------------------------- Video signal and cabling
@@ -222,29 +199,6 @@ var WHICH_DATA = {
       tags: ["reference"],
       checked: "2026-11-26",
       why: "The source document, so the figures come first hand."
-    },
-    {
-      group: "Video signal and cabling",
-      task: "Cable distance limits on one page",
-      gap: true,
-      does: "No neutral, sourced single reference found for HDMI, HDBaseT™, SDI, USB, DisplayPort and fibre limits. Check each figure with the standard body or the equipment maker.",
-      checked: "2026-11-26",
-      alsoTry: [
-        { name: "Atlona HDBaseT cabling guide", url: "https://support.atlona.com/hc/en-us/articles/360054843994-HDBaseT-Cabling-A-Guide", note: "A practical guide dated 2023-07-18, written around Atlona products.", tags: ["reference"], manual: true },
-        { name: "XTEN-AV cable length chart", url: "https://xtenav.com/av-cable-length-calculator/", note: "A cable length chart; its figures carry no sources." },
-        { name: "Patchify HDMI cable calculator", url: "https://patchify.app/tools/hdmi-cable-calculator", note: "Round-number estimates without sources." },
-        { name: "Patchify SDI cable calculator", url: "https://patchify.app/tools/sdi-cable-calculator", note: "Round-number estimates without sources." }
-      ]
-    },
-    {
-      group: "Video signal and cabling",
-      task: "Recording and streaming storage",
-      gap: true,
-      does: "No pick: the one calculator tried gave a GB figure about 2% low. By hand: megabits per second × seconds ÷ 8,000 = gigabytes.",
-      checked: "2026-11-26",
-      alsoTry: [
-        { name: "Patchify video file size calculator", url: "https://patchify.app/tools/video-file-size-calculator", expect: "File Size", note: "Codec or custom bitrate plus duration to file size. Its MB figure matched a hand calculation; its GB figure was about 2% low (10 Mbps for one hour gave 4.39 GB, not 4.5 GB)." }
-      ]
     },
 
     // ---------------------------------------------------------------- Audio: loudspeakers and amplifiers
@@ -362,18 +316,6 @@ var WHICH_DATA = {
     },
     {
       group: "Audio: microphones, acoustics, conversions",
-      task: "Ceiling microphone coverage",
-      gap: true,
-      does: "No neutral tool found. Each maker has its own, so use the one for the microphone you have chosen.",
-      checked: "2026-11-26",
-      alsoTry: [
-        { name: "Shure Designer", url: "https://www.shure.com/en-US/products/software/designer_software", note: "Shure's room design software.", tags: ["maker", "download"] },
-        { name: "Sennheiser Room Planner", url: "https://www.sennheiser.com/en-in/room-planner", note: "Sennheiser's room planning tool.", tags: ["maker"] },
-        { name: "Biamp Workplace Designer", url: "https://designer.workplace.biamp.app/designs", note: "Biamp's room design web app.", tags: ["maker"] }
-      ]
-    },
-    {
-      group: "Audio: microphones, acoustics, conversions",
       task: "Reverberation time (RT60)",
       name: "RT60 calculator",
       publisher: "sengpielaudio",
@@ -457,41 +399,6 @@ var WHICH_DATA = {
       checked: "2026-11-26",
       why: "Free and not tied to any maker's hardware."
     },
-    {
-      group: "Audio: microphones, acoustics, conversions",
-      task: "Speech intelligibility (STI) estimate at design stage",
-      gap: true,
-      does: "No free, neutral estimator found. Loudspeaker modelling software is the usual route.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Audio: microphones, acoustics, conversions",
-      task: "Critical distance",
-      gap: true,
-      does: "No good free calculator found. Work it by hand from the room volume and reverberation time.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Audio: microphones, acoustics, conversions",
-      task: "Hearing loop sizing",
-      gap: true,
-      does: "No free tool found. Loop makers offer design services instead.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Audio: microphones, acoustics, conversions",
-      task: "Sound masking layout",
-      gap: true,
-      does: "Nothing found. Ask the maker of the masking system for a layout.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Audio: microphones, acoustics, conversions",
-      task: "Paging horn coverage",
-      gap: true,
-      does: "Nothing found. The inverse square law calculator in the Crown set gives the level at a distance.",
-      checked: "2026-11-26"
-    },
 
     // ---------------------------------------------------------------- Network
     {
@@ -549,20 +456,6 @@ var WHICH_DATA = {
       tags: [],
       checked: "2026-11-26",
       why: "The closest thing found to an AV address schedule. Saving a project is a paid feature."
-    },
-    {
-      group: "Network",
-      task: "Multicast address planning",
-      gap: true,
-      does: "No tool found at all. A spreadsheet is the usual workaround.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Network",
-      task: "VLAN plan for AV",
-      gap: true,
-      does: "No AV-specific builder found. The IP address chart tool above covers part of it.",
-      checked: "2026-11-26"
     },
     {
       group: "Network",
@@ -655,13 +548,6 @@ var WHICH_DATA = {
       checked: "2026-11-26",
       why: "Nothing neutral was found for UPS runtime. The results are APC models only."
     },
-    {
-      group: "Rack, power and heat",
-      task: "Power sequencing plan",
-      gap: true,
-      does: "Nothing found. A spreadsheet of circuits and switch-on order is the usual workaround.",
-      checked: "2026-11-26"
-    },
 
     // ---------------------------------------------------------------- Pathways and cable
     {
@@ -731,13 +617,6 @@ var WHICH_DATA = {
     },
     {
       group: "Pathways and cable",
-      task: "AV cable schedule builder",
-      gap: true,
-      does: "Nothing found that builds a numbered from-and-to schedule and exports labels. The label generator above covers part of it.",
-      checked: "2026-11-26"
-    },
-    {
-      group: "Pathways and cable",
       task: "Voltage drop, low-voltage runs",
       name: "Voltage drop calculator",
       publisher: "Avitly",
@@ -772,23 +651,6 @@ var WHICH_DATA = {
       checked: "2026-11-26",
       why: "From a trade association, not a cable maker."
     },
-    {
-      group: "Pathways and cable",
-      task: "Antenna coax loss",
-      gap: true,
-      does: "No pick: the one calculator found does not show its formulas. The cable maker's datasheet gives loss per length at each frequency.",
-      checked: "2026-11-26",
-      alsoTry: [
-        { name: "KV5R RF feedline loss calculator", url: "https://kv5r.com/ham-radio/coax-loss-calculator/", note: "Coax type, length and frequency to loss in dB. A hobby site; formulas not shown." }
-      ]
-    },
-    {
-      group: "Pathways and cable",
-      task: "Cable bend radius lookup",
-      gap: true,
-      does: "Nothing found. Use the minimum bend radius on the cable datasheet.",
-      checked: "2026-11-26"
-    },
 
     // ---------------------------------------------------------------- Drawing, documents and lookup
     {
@@ -805,13 +667,6 @@ var WHICH_DATA = {
       alsoTry: [
         { name: "AVSnap", url: "https://avsnap.com/", note: "A free desktop program made for AV drawings.", tags: ["download"] }
       ]
-    },
-    {
-      group: "Drawing, documents and lookup",
-      task: "AV shape library for draw.io",
-      gap: true,
-      does: "No maintained library of AV device shapes found. Build your own blocks in draw.io for now.",
-      checked: "2026-11-26"
     },
     {
       group: "Drawing, documents and lookup",
@@ -835,13 +690,6 @@ var WHICH_DATA = {
       tags: ["maker"],
       checked: "2026-11-26",
       why: "Nothing neutral was found. Whether it needs an account was not confirmed."
-    },
-    {
-      group: "Drawing, documents and lookup",
-      task: "Display lookup across makers (VESA pattern, weight, depth)",
-      gap: true,
-      does: "No neutral lookup found. Use each display maker's datasheet.",
-      checked: "2026-11-26"
     },
     {
       group: "Drawing, documents and lookup",
