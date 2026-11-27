@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which tool for this? - AV Tools</title>
+<link rel="stylesheet" href="../shared/style.css">
+<link rel="stylesheet" href="which.css">
+</head>
+<body>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">AV Tools</a><span>/</span><span>Which tool for this?</span></nav>
+<header class="page-head">
+  <div>
+    <h1>Which tool for this?</h1>
+    <p class="lede">One free tool per AV design task, checked and dated.</p>
+  </div>
+  <a id="suggestLink" class="suggest" target="_blank" rel="noopener" hidden>Suggest a tool</a>
+</header>
+<p class="small muted intro">Each row names <strong>my pick</strong> for one task and links to it. These are picks, not
+"the best": the tools were opened and dated, <strong>not tested for accuracy</strong>.
+<a href="#rules">How tools are chosen</a>.</p>
+
+<form class="card filters" id="filters" autocomplete="off" onsubmit="return false">
+  <div>
+    <label for="search">Search</label>
+    <input id="search" type="search" placeholder="Task, tool or publisher, for example: conduit" autocomplete="off">
+  </div>
+  <div class="ticks">
+    <label class="tick"><input type="checkbox" id="hideMaker"> Hide tools tied to one maker</label>
+    <label class="tick"><input type="checkbox" id="hideAccount"> Hide tools that need an account or email</label>
+  </div>
+  <p class="small muted count" id="count" aria-live="polite"></p>
+</form>
+
+<noscript><p class="card">This page needs JavaScript switched on to show the list.</p></noscript>
+<div id="list"></div>
+<p class="card" id="empty" hidden>No rows match. Clear the search box or untick a box.</p>
+
+<h2 id="rules">How tools are chosen</h2>
+<div class="card">
+<ul class="notes small">
+  <li><strong>Free tools only.</strong> A tool with a paid upgrade is listed only if the free part does the job
+  on its own.</li>
+  <li>A pick should be: free, usable without an account, not tied to one maker's catalogue, usable on a phone,
+  open about its formulas, and likely to stay online. Few tools meet all six, so the tags and the notes say
+  where a pick falls short.</li>
+  <li>Where nothing neutral exists, a tool tied to one maker may be the pick. It is tagged, and the note says so.</li>
+  <li>A row reading <strong>Nothing good found yet</strong> is a task with no free tool I would point a colleague
+  to. The nearest workaround is given instead.</li>
+  <li>Each of these is <strong>my pick, not "the best"</strong>. "Also try" lists other tools for the same task,
+  with one plain fact about each.</li>
+  <li><strong>The tools were opened and dated, not tested for accuracy.</strong> Check any result that matters
+  against the maker's data, the standard or a hand calculation.</li>
+  <li>The date on each row is when its link was last opened. A row not rechecked for more than six months says
+  so.</li>
+  <li><strong>No payment, sponsorship or affiliate links.</strong> I have no affiliation with any publisher
+  listed. Two of the tools are my own and are tagged "my own tool".</li>
+  <li>Links go to other people's sites, which can change or close without notice. No text, images or logos are
+  copied from them.<span id="formNote" hidden> To report a broken link, use "report broken" beside it. To suggest
+  a tool, or to ask for a correction or removal, use "Suggest a tool" at the top of the page.</span></li>
+</ul>
+</div>
+
+<h2>What the tags mean</h2>
+<div class="card">
+<dl class="tagkey small">
+  <dt><span class="tag">one maker's products</span></dt><dd>The tool only works with, or only recommends, one manufacturer's products.</dd>
+  <dt><span class="tag">needs account</span></dt><dd>You have to sign in before you can use it.</dd>
+  <dt><span class="tag">needs email</span></dt><dd>It asks for an email address before it gives a result.</dd>
+  <dt><span class="tag">download</span></dt><dd>Free software you install, not a web page.</dd>
+  <dt><span class="tag">reference, not a calculator</span></dt><dd>A source document to read.</dd>
+  <dt><span class="tag">my own tool</span></dt><dd>Built by me, on this site.</dd>
+</dl>
+<p class="small muted" style="margin:12px 0 0">No tag means free, in the browser, with no sign-up seen.</p>
+</div>
+
+<p class="small muted">Dante® is a trademark of Audinate. NDI® is a trademark of Vizrt. HDBaseT™ is a trademark of
+the HDBaseT Alliance. Other product and company names belong to their owners and are used only to identify the
+tools. This page is not affiliated with or endorsed by any of them.</p>
+<p class="small muted">Want to check the list itself? <a href="selftest.html">Run the self-check</a>.</p>
+
+<script src="tools-data.js"></script>
+<script src="which.js"></script>
+<script src="app.js"></script>
+<script src="../shared/disclaimer.js" defer></script>
+</body>
+</html>
