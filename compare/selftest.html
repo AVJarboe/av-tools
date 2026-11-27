@@ -12,9 +12,15 @@
 <p>Each row runs the tool on a small list and compares the answer with one worked out by hand.
 The lists and the expected answers are written out in <code>compare.test.js</code>.</p>
 <div id="selftest" style="overflow-x:auto"><p class="bad">The self-check did not run.</p></div>
+<h2>Reading Excel workbooks</h2>
+<p>The same idea for .xlsx files: small workbooks are built from XML written out in
+<code>xlsx.test.js</code>, read back, and compared with the hand-worked answer.</p>
+<div id="selftest-xlsx" style="overflow-x:auto"><p class="bad">The self-check did not run.</p></div>
 <script src="compare.js"></script>
 <script src="sample.js"></script>
 <script src="compare.test.js"></script>
+<script src="xlsx.js"></script>
+<script src="xlsx.test.js"></script>
 <script src="../shared/disclaimer.js" defer></script>
 </body>
 </html>

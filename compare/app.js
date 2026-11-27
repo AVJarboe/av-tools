@@ -2,7 +2,7 @@
 // wording lives in compare.js. Nothing here saves or sends anything.
 (function () {
   "use strict";
-  var ELC = window.ELC, SAMPLE = window.ELC_SAMPLE;
+  var ELC = window.ELC, ELCX = window.ELCX, SAMPLE = window.ELC_SAMPLE;
   var $ = function (id) { return document.getElementById(id); };
 
   function el(tag, props, kids) {
@@ -17,8 +17,8 @@
   }
 
   var sides = {
-    A: { rows: [], headerIndex: -1, headerSig: null, map: null, list: null, fileMsg: "" },
-    B: { rows: [], headerIndex: -1, headerSig: null, map: null, list: null, fileMsg: "" }
+    A: { rows: [], headerIndex: -1, headerSig: null, map: null, list: null, fileMsg: "", book: null, bookName: "", loadId: 0 },
+    B: { rows: [], headerIndex: -1, headerSig: null, map: null, list: null, fileMsg: "", book: null, bookName: "", loadId: 0 }
   };
   var last = null;   // the result on screen, if any
   // What the user typed against the results. Kept in memory only (never saved or
@@ -217,22 +217,101 @@
     try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
     catch (e) { return new TextDecoder("windows-1252").decode(bytes); }
   }
-  function loadFile(L, file) {
+  var PASTE_INSTEAD = " Open it, select the cells, copy, and paste them into the box. Or save it as .xlsx or .csv first.";
+
+  // Under the file button: what was loaded (plain) or why it could not be (red).
+  function fileNote(L, text, bad) {
+    var note = $("fileNote" + L);
+    note.textContent = text || "";
+    note.className = "small filenote " + (bad ? "bad" : "muted");
+  }
+  function forgetBook(L) {
     var s = sides[L];
-    if (/\.(xlsx?|xlsm|xlsb|pdf|docx?|numbers)$/i.test(file.name)) {
-      s.fileMsg = "That file type is not read. Open it in Excel, select the cells, copy, and paste them into the box above. Or save it as .csv first.";
-      renderRead(L);
-      return;
-    }
-    var reader = new FileReader();
+    s.loadId++;            // anything still loading for this side is dropped when it arrives
+    s.book = null;
+    s.bookName = "";
+    $("sheetBox" + L).hidden = true;
+    $("sheet" + L).textContent = "";
+  }
+  function fileProblem(L, text) {
+    forgetBook(L);
+    fileNote(L, text, true);
+  }
+  function putText(L, text) {
+    sides[L].fileMsg = "";
+    $("text" + L).value = text;
+    stale();
+    analyse(L);
+  }
+
+  function loadFile(L, file) {
+    var s = sides[L], reader = new FileReader();
+    forgetBook(L);
+    var id = s.loadId;
+    fileNote(L, "Reading " + file.name + "...");
     reader.onload = function () {
-      s.fileMsg = "";
-      $("text" + L).value = decode(reader.result);
-      stale();
-      analyse(L);
+      if (id !== s.loadId) { return; }
+      var bytes = new Uint8Array(reader.result), kind = ELCX.sniff(bytes);
+      if (kind === "pdf") {
+        fileProblem(L, "PDF files are not read. Copy the table out of the PDF and paste it into the box, or ask for the spreadsheet.");
+      } else if (kind === "ole") {
+        fileProblem(L, "This is an old-style Excel file (.xls) or a password-protected workbook, which is not read." + PASTE_INSTEAD);
+      } else if (kind === "zip") {
+        if (!ELCX.canUnzip()) { fileProblem(L, "This browser cannot open .xlsx files." + PASTE_INSTEAD); return; }
+        ELCX.open(bytes).then(function (book) {
+          if (id !== s.loadId) { return; }
+          s.book = book;
+          s.bookName = file.name;
+          var sel = $("sheet" + L), first = -1;
+          book.sheets.forEach(function (sh, i) {
+            sel.appendChild(el("option", { value: String(i), text: sh.name + (sh.hidden ? " (hidden sheet)" : "") }));
+            if (first < 0 && !sh.hidden) { first = i; }
+          });
+          $("sheetBox" + L).hidden = book.sheets.length < 2;
+          return firstListSheet(book, first < 0 ? 0 : first).then(function (i) {
+            if (id !== s.loadId) { return; }
+            sel.value = String(i);
+            showSheet(L);
+          });
+        }).catch(function (e) { if (id === s.loadId) { fileProblem(L, bookError(e)); } });
+      } else if (/\.(xls[xmb]?|pdf|docx?|numbers|ods)$/i.test(file.name)) {
+        fileProblem(L, "That file could not be read as " + file.name.replace(/^.*\./, ".").toLowerCase() + "." + PASTE_INSTEAD);
+      } else {
+        putText(L, decode(reader.result));
+        fileNote(L, "Loaded " + file.name + ".");
+      }
     };
-    reader.onerror = function () { s.fileMsg = "The file could not be read."; renderRead(L); };
+    reader.onerror = function () { if (id === s.loadId) { fileProblem(L, "The file could not be read."); } };
     reader.readAsArrayBuffer(file);
+  }
+  // Messages written in xlsx.js are plain words already; anything else is unexpected.
+  function bookError(e) {
+    if (!e || !e.plain) { return "This workbook could not be read." + PASTE_INSTEAD; }
+    return /Save it|paste it/.test(e.message) ? e.message : e.message + PASTE_INSTEAD;
+  }
+  // Which sheet to show first: the first one that is not hidden and has a row of column
+  // headings, so a cover sheet in front of the list is skipped. Failing that, the fallback.
+  function firstListSheet(book, fallback) {
+    function tryFrom(i) {
+      if (i >= book.sheets.length) { return Promise.resolve(fallback); }
+      if (book.sheets[i].hidden) { return tryFrom(i + 1); }
+      return book.readSheet(i).then(function (rows) {
+        return ELC.findHeaderRow(ELC.parseTable(ELCX.toText(rows)).rows) >= 0 ? i : tryFrom(i + 1);
+      });
+    }
+    return tryFrom(0);
+  }
+  // Put the chosen sheet of the loaded workbook into the box, as if it had been pasted.
+  function showSheet(L) {
+    var s = sides[L], id = s.loadId, i = parseInt($("sheet" + L).value, 10), book = s.book;
+    if (!book) { return; }
+    book.readSheet(i).then(function (rows) {
+      if (id !== s.loadId) { return; }
+      putText(L, ELCX.toText(rows));
+      var name = "\"" + book.sheets[i].name + "\"";
+      fileNote(L, rows.length ? "Read sheet " + name + " from " + s.bookName + ": " + plural(rows.length, "row", "rows") + "."
+        : "Sheet " + name + " in " + s.bookName + " is empty.", !rows.length);
+    }).catch(function (e) { if (id === s.loadId) { fileProblem(L, bookError(e)); } });
   }
 
   // ----- results -----
@@ -362,6 +441,29 @@
       if (this.files && this.files[0]) { loadFile(L, this.files[0]); }
       this.value = "";   // so picking the same file again still reloads it
     });
+    $("sheet" + L).addEventListener("change", function () { showSheet(L); });
+    // A file dragged onto the card loads the same way as one picked with the button.
+    var card = $("card" + L);
+    card.addEventListener("dragover", function (e) {
+      if (!hasFile(e)) { return; }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      card.classList.add("dragging");
+    });
+    card.addEventListener("dragleave", function (e) {
+      if (!card.contains(e.relatedTarget)) { card.classList.remove("dragging"); }
+    });
+    card.addEventListener("drop", function (e) {
+      if (!hasFile(e)) { return; }
+      e.preventDefault();
+      card.classList.remove("dragging");
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) { loadFile(L, e.dataTransfer.files[0]); }
+    });
+  });
+  // A file dropped beside the boxes must not make the browser leave the page to open it.
+  function hasFile(e) { return !!e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") !== -1; }
+  ["dragover", "drop"].forEach(function (type) {
+    window.addEventListener(type, function (e) { if (hasFile(e)) { e.preventDefault(); } });
   });
   // Heading fields update the log on screen as they are typed.
   ["nameA", "dateA", "nameB", "dateB", "project", "preparedBy"].forEach(function (id) {
@@ -377,6 +479,7 @@
     $("textB").value = SAMPLE.b;
     $("levels").value = "auto";
     sides.A.fileMsg = sides.B.fileMsg = "";
+    ["A", "B"].forEach(function (L) { forgetBook(L); fileNote(L, ""); });
     analyse("A");
     analyse("B");
     renderResults();
@@ -387,6 +490,8 @@
       $("name" + L).value = "";
       $("date" + L).value = "";
       sides[L].fileMsg = "";
+      forgetBook(L);
+      fileNote(L, "");
     });
     $("project").value = "";
     $("preparedBy").value = "";

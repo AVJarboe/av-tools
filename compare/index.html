@@ -12,8 +12,8 @@
 <meta property="og:description" content="Paste two revisions of an AV equipment list and get a plain log of what was added, removed or changed. Runs in your browser, nothing is uploaded.">
 <meta property="og:url" content="https://avjarboe.github.io/av-tools/compare/">
 <meta property="og:image" content="https://avjarboe.github.io/av-tools/shared/preview.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="627">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1254">
 <meta property="og:image:alt" content="AV Tools: free, open-source tools for AV system design">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="../shared/style.css">
@@ -29,10 +29,13 @@ Everything happens in this page: nothing is saved, uploaded or sent anywhere. Wo
 
 <div class="no-print">
 <h2>1. The two lists</h2>
-<p class="small muted">In Excel, select the cells including the row of column headings, copy, and paste into
-the box. Or load a .csv file. Excel workbooks (.xlsx) and PDFs are not read directly.</p>
+<p class="small muted">For each revision, do one of these. <strong>Paste:</strong> in Excel, Google Sheets,
+Numbers, or a table in Word or on a web page, select the cells including the row of column headings, copy, and
+paste into the box. <strong>Load a file:</strong> an Excel workbook (.xlsx) or a .csv, .tsv or .txt export;
+choose it or drag it onto the box. Not read: PDF, old .xls, Word and LibreOffice files. For a PDF, copy the
+table out of it and paste, or ask for the spreadsheet.</p>
 <div class="pair">
-  <div class="card">
+  <div class="card drop" id="cardA">
     <h3>Revision A (the older list)</h3>
     <div class="namedate">
       <div><label for="nameA">Name to use in the log (optional)</label>
@@ -42,10 +45,15 @@ the box. Or load a .csv file. Excel workbooks (.xlsx) and PDFs are not read dire
     </div>
     <label for="textA">Paste the list here</label>
     <textarea id="textA" spellcheck="false" wrap="off" autocomplete="off"></textarea>
-    <label for="fileA">or load a .csv file</label>
-    <input id="fileA" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain">
+    <label for="fileA">or load a file (.xlsx, .csv, .tsv, .txt), or drag one onto this box</label>
+    <input id="fileA" type="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <p class="small muted filenote" id="fileNoteA" role="status"></p>
+    <div id="sheetBoxA" hidden>
+      <label for="sheetA">Sheet to read</label>
+      <select id="sheetA"></select>
+    </div>
   </div>
-  <div class="card">
+  <div class="card drop" id="cardB">
     <h3>Revision B (the newer list)</h3>
     <div class="namedate">
       <div><label for="nameB">Name to use in the log (optional)</label>
@@ -55,8 +63,13 @@ the box. Or load a .csv file. Excel workbooks (.xlsx) and PDFs are not read dire
     </div>
     <label for="textB">Paste the list here</label>
     <textarea id="textB" spellcheck="false" wrap="off" autocomplete="off"></textarea>
-    <label for="fileB">or load a .csv file</label>
-    <input id="fileB" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain">
+    <label for="fileB">or load a file (.xlsx, .csv, .tsv, .txt), or drag one onto this box</label>
+    <input id="fileB" type="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <p class="small muted filenote" id="fileNoteB" role="status"></p>
+    <div id="sheetBoxB" hidden>
+      <label for="sheetB">Sheet to read</label>
+      <select id="sheetB"></select>
+    </div>
   </div>
 </div>
 <div class="card">
@@ -125,6 +138,11 @@ model number, part number or description is needed. A line with no quantity coun
   <li><strong>Column headings.</strong> The first row with two or more filled cells is taken as the column
   headings. Anything above it (a title line, for example) is ignored. Columns that are not picked in step 2,
   such as prices or notes, are ignored too.</li>
+  <li><strong>Excel workbooks.</strong> An .xlsx file is opened in this page, not uploaded. The sheet shown is
+  the first one with a row of column headings; pick another from the drop-down. The cells are put in the box
+  as if you had pasted them. A formula gives the answer Excel last worked out. Number formats are not
+  applied: a date reads as Excel's day number and a number shown as "007" reads as 7, so keep model numbers
+  as text. Hidden rows and columns are read too.</li>
   <li><strong>Heading rows.</strong> A row with text in only one cell is a heading, and every line under it
   belongs to that heading until the next one. A heading directly followed by another heading is read as a
   location and then a system inside it; a single heading after that is another system in the same location.
@@ -155,6 +173,7 @@ model number, part number or description is needed. A line with no quantity coun
 against hand-worked examples. The sample lists are made up; no real maker or project is in them.</p>
 
 <script src="compare.js"></script>
+<script src="xlsx.js"></script>
 <script src="sample.js"></script>
 <script src="app.js"></script>
 <script src="../shared/disclaimer.js" defer></script>
