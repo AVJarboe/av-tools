@@ -23,7 +23,7 @@
 var WHICH_DATA = {
 
   // THE TWO GOOGLE FORM ADDRESSES, both on the next line. "" hides the controls. In reportBroken, the word TOOL_LINK is swapped for the tool's link.
-  forms: { reportBroken: "", suggestTool: "" },
+  forms: { reportBroken: "https://docs.google.com/forms/d/e/1FAIpQLSfNBrr32ICWMgyosdEu-cpKLbaakvj7rqUoMdhHMBjuBApwXA/viewform?usp=pp_url&entry.636954109=TOOL_LINK", suggestTool: "https://forms.gle/wQu5rep2h4MmVW479" },
 
   groups: [
     "Display and projection",
