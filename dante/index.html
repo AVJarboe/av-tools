@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dante flow &amp; bandwidth planner - AV Tools</title>
+<!-- Link preview: what LinkedIn and other sites show when this address is pasted -->
+<meta name="description" content="Count Dante audio flows per device, estimate the load on every network link and print a one-page port and QoS brief for the IT team. Free, works offline, every figure sourced.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AV Tools">
+<meta property="og:title" content="Dante flow and bandwidth planner">
+<meta property="og:description" content="Count audio flows per device, estimate the load on every link and print a one-page port and QoS brief for IT. Free, works offline, every figure sourced.">
+<meta property="og:url" content="https://avjarboe.github.io/av-tools/dante/">
+<meta property="og:image" content="https://avjarboe.github.io/av-tools/shared/preview.png">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1254">
+<meta property="og:image:alt" content="AV Tools: free, open-source tools for AV system design">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="../shared/style.css">
+<link rel="stylesheet" href="dante.css">
+</head>
+<body>
+<nav class="crumbs no-print" aria-label="Breadcrumb"><a href="../index.html">AV Tools</a><span>/</span><span>Dante flow planner</span></nav>
+<h1>Dante<sup>&reg;</sup> flow &amp; bandwidth planner</h1>
+<p class="lede no-print">List the devices and who sends audio to whom. The planner counts the flows each device
+needs, estimates the load on every link and writes a one-page brief for the IT team.</p>
+<p class="print-only brief-keep" id="printTitle"></p>
+
+<div class="layout">
+<form id="form" class="no-print" autocomplete="off" onsubmit="return false">
+  <div class="card">
+    <h2><span class="step">1</span>Network</h2>
+    <div class="fields tight">
+      <div><label for="project">Project name</label>
+        <input id="project" type="text" maxlength="80" placeholder="Optional, shown on printouts"></div>
+      <div><label for="sampleRate">Sample rate</label>
+        <select id="sampleRate"></select></div>
+      <div><label for="uplink">Link between switches</label>
+        <select id="uplink">
+          <option value="100">100 Mbps</option>
+          <option value="1000" selected>1 Gbps</option>
+          <option value="10000">10 Gbps</option>
+        </select></div>
+      <div><label for="perFlow">Multicast flow size</label>
+        <select id="perFlow">
+          <option value="8" selected>8 channels</option>
+          <option value="16">16 channels</option>
+          <option value="32">32 channels</option>
+          <option value="64">64 channels</option>
+        </select>
+        <small class="hint">8 works on every device.</small></div>
+    </div>
+    <div class="fields" style="margin-top:14px">
+      <label class="check" for="igmp"><input id="igmp" type="checkbox" checked>
+        <span>IGMP snooping is on<small class="hint">The switch setting that sends multicast only to the ports that asked for it. Off means every port gets all of it.</small></span></label>
+      <label class="check" for="aes67"><input id="aes67" type="checkbox">
+        <span>AES67 mode is used<small class="hint">Adds the AES67 addresses and ports to the IT brief.</small></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">2</span>Devices</h2>
+    <div class="row-head dev-cols" aria-hidden="true"><span>Name</span><span>Type</span><span>Qty</span><span>Switch</span><span title="Channels this device sends as multicast">Multicast ch</span><span></span></div>
+    <div id="devices"></div>
+    <div class="row-foot">
+      <button type="button" id="addDevice">+ Add device</button>
+      <span class="total" id="devTotal"></span>
+    </div>
+    <p class="small muted" style="margin:12px 0 0"><strong>Multicast ch</strong>: how many of this device's channels it
+    sends as multicast (one stream any number of receivers can pick up). Leave at 0 for ordinary one-to-one audio.
+    <strong>Switch</strong>: type the same name for devices plugged into the same switch.</p>
+    <datalist id="switchNames"></datalist>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">3</span>Audio routes</h2>
+    <div class="row-head route-cols" aria-hidden="true"><span>From</span><span>To</span><span>Channels</span><span>Sent as</span><span class="r">Flows</span><span></span></div>
+    <div id="routes"></div>
+    <div class="row-foot">
+      <button type="button" id="addRoute">+ Add route</button>
+      <span class="total" id="routeTotal"></span>
+    </div>
+    <p class="small muted" style="margin:12px 0 0">A route means <strong>every</strong> unit on the From line sends that
+    many channels to <strong>every</strong> unit on the To line. So "DSP to Amplifiers (quantity 4), 2 channels" is
+    2 channels to each of the 4 amplifiers.</p>
+  </div>
+</form>
+
+<aside class="summary" id="results" aria-live="polite">
+  <h2 class="results-h no-print">Results</h2>
+  <div class="card tile" id="flowTile">
+    <div class="tile-head"><span class="k">Flow limits</span><span id="flowBadge" class="badge"></span></div>
+    <div class="big" id="flowBig"></div>
+    <div class="bar"><div class="fill" id="flowFill"></div></div>
+    <div class="bar-cap"><span id="flowCapL"></span><span id="flowCapR"></span></div>
+    <p id="flowMsg"></p>
+  </div>
+  <div class="card tile" id="linkTile">
+    <div class="tile-head"><span class="k">Busiest link</span><span id="linkBadge" class="badge"></span></div>
+    <div class="big" id="linkBig"></div>
+    <div class="bar"><div class="fill" id="linkFill"></div></div>
+    <div class="bar-cap"><span id="linkCapL"></span><span id="linkCapR"></span></div>
+    <p id="linkMsg"></p>
+  </div>
+  <div class="card facts-card">
+    <dl class="facts" id="facts"></dl>
+    <div class="actions no-print">
+      <button type="button" class="primary" id="printBrief">Print IT brief</button>
+      <button type="button" id="printAll">Print whole plan</button>
+      <button type="button" id="resetBtn">Reset to example</button>
+    </div>
+  </div>
+</aside>
+</div>
+
+<div id="issuesWrap" hidden>
+  <h2>Things to fix or check</h2>
+  <div class="card"><ul class="issues" id="issues"></ul></div>
+</div>
+
+<h2>Each device</h2>
+<div class="card scroll-x">
+  <table class="stack" id="devTable">
+    <thead><tr><th>Device</th><th class="num">Transmit flows</th><th class="num">Receive flows</th>
+      <th class="num">Sends</th><th class="num">Receives</th><th class="num">Link fill</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p class="small muted" style="margin:10px 0 0">Figures are for one unit of each line. "Sends" and "Receives" are
+  megabits per second (Mbps) on the cable between that device and its switch.</p>
+</div>
+
+<div id="uplinkWrap" hidden>
+  <h2>Links between switches</h2>
+  <div class="card scroll-x">
+    <table class="stack" id="swTable">
+      <thead><tr><th>Switch</th><th class="num">Devices</th><th class="num">Leaving</th><th class="num">Arriving</th>
+        <th class="num">Uplink fill</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="small muted" style="margin:10px 0 0">Every switch is assumed to connect to one central switch by a single
+    uplink. Audio between two devices on the same switch never touches the uplink.</p>
+  </div>
+</div>
+
+<h2>How each figure is worked out</h2>
+<div class="card"><div id="worked"></div></div>
+
+<div class="brief-head brief-keep">
+  <h2>Brief for the IT team</h2>
+  <button type="button" class="no-print" id="printBrief2">Print this brief</button>
+</div>
+<div class="card brief-keep" id="brief"></div>
+
+<h2>Assumptions and limits</h2>
+<div class="card">
+<ul class="notes small" id="notes"></ul>
+</div>
+
+<h2>Sources</h2>
+<div class="card">
+<p class="small">Every vendor figure on this page is an <strong>estimate</strong> taken from the documents below.
+Vendors revise them: open the document and check before you rely on a number.</p>
+<ul class="notes small" id="sources"></ul>
+</div>
+
+<p class="small muted">Dante&reg; is a registered trademark of Audinate Pty Ltd. This page is not affiliated with or
+endorsed by Audinate. Product names are used only to describe what the figures apply to.</p>
+<p class="small muted no-print">Want to check the maths? <a href="selftest.html">Run the self-check</a> against
+hand-worked examples.</p>
+
+<script src="data.js"></script>
+<script src="calc.js"></script>
+<script src="app.js"></script>
+<script src="../shared/disclaimer.js" defer></script>
+</body>
+</html>

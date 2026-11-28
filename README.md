@@ -11,7 +11,7 @@ Hosted on GitHub Pages as one hub.
 | `/70v` | 70V/100V line & amplifier load calculator + voltage drop | available |
 | `/compare` | Equipment list compare: what changed between two revisions | available |
 | `/which` | Which tool for this? One free tool per AV design task, checked and dated | available |
-| `/dante` | Dante/AES67 bandwidth & flow planner + IT port/QoS sheet | next |
+| `/dante` | Dante® flow & bandwidth planner + IT port/QoS brief | available |
 | `/labels` | Cable label & schedule generator (aligned with AVIXA F501.01) | planned |
 | `/ipvlan` | Device IP schedule & VLAN planner | planned |
 | `/rack` | Rack elevation builder with heat/power roll-up | planned |
@@ -22,7 +22,10 @@ Each tool keeps its calculations in a `calc.js` file with hand-worked test
 cases beside it. For the 70V/100V calculator, open `70v/selftest.html` in a
 browser, or run `node 70v/calc.test.js` if you have Node.js. The equipment
 list compare keeps its logic in `compare/compare.js`, with
-`compare/selftest.html` and `node compare/compare.test.js` the same way.
+`compare/selftest.html` and `node compare/compare.test.js` the same way. The
+Dante flow planner does the same with `dante/selftest.html` and
+`node dante/calc.test.js`; its vendor figures and their source links are in
+`dante/data.js`.
 
 The "Which tool for this?" index links to other people's tools, which were
 opened and dated but not tested for accuracy. Its whole list is in
